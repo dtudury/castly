@@ -1,4 +1,3 @@
-
 var UNDEFINED = exports.UNDEFINED = "[object Undefined]";
 var NULL = exports.NULL = "[object Null]";
 var STRING = exports.STRING = "[object String]";
@@ -20,16 +19,12 @@ function handleMismatch(output, attr, expected, val) {
     expected = expected.match(/^\[object (.*)\]$/)[1];
     actual = actual.match(/^\[object (.*)\]$/)[1];
     var message = "expected " + expected + " for " + output.constructor.name + "." + attr + ", got " + actual + " instead";
-    if(exports.logMismatch) {
+    if (exports.logMismatch) {
         console.log(message, val);
     }
-    if(exports.throwMismatch) {
+    if (exports.throwMismatch) {
         throw new Error(message);
     }
-}
-
-function unmarshal(str, constructor) {
-    return(JSON.parse(str), constructor);
 }
 
 function convert(obj, constructor) {
@@ -38,7 +33,7 @@ function convert(obj, constructor) {
     var actualType;
     var val;
     var output = new constructor();
-    var typeDescription = output.getTypeDescription();
+    var typeDescription = output.getTypeDescription && output.getTypeDescription();
     if (typeDescription) {
         for (attr in typeDescription) {
             val = obj[attr];
@@ -50,7 +45,7 @@ function convert(obj, constructor) {
                 }
                 output[attr] = val;
                 delete obj[attr];
-            } else if({}.toString.call(expectedType) === FUNCTION) {
+            } else if ({}.toString.call(expectedType) === FUNCTION) {
                 output[attr] = expectedType(val);
             } else {
                 handleMismatch(output, attr, "[object UnhandledType]", val);
@@ -65,13 +60,22 @@ function convert(obj, constructor) {
             output[attr] = val;
         }
     } else {
-        console.log("no typeDescription for", output.constructor.name);
+        handleMismatch(output, "typeDescriptor", FUNCTION, UNDEFINED);
         for (attr in obj) {
             output[attr] = obj[attr];
         }
     }
     return output;
 }
+
+function unmarshal(str, constructor) {
+    if (str) {
+        return convert(JSON.parse(str), constructor);
+    } else {
+        return null;
+    }
+}
+
 
 exports.convert = convert;
 exports.unmarshal = unmarshal;
