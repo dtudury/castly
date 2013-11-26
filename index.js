@@ -50,7 +50,8 @@ function convert(obj, template, name) {
     name = name || (template.constructor && template.constructor.name);
     var templateType = _getType(template);
     if (jsonMarshallable.indexOf(template) >= 0 || templateType === ARRAY) {
-        return test(obj, template, name); //a type that doesn't need conversion
+        test(obj, template, name); //a type that doesn't need conversion
+        return obj;
     } else if (templateType === FUNCTION) {
         return template(obj); //a custom conversion
     } else if (templateType === OBJECT) {
