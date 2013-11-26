@@ -1,35 +1,40 @@
-var ARRAY = exports.ARRAY = "[object Array]";
-var BOOLEAN = exports.BOOLEAN = "[object Boolean]";
-var DATE = exports.DATE = "[object Date]";
-var FUNCTION = exports.FUNCTION = "[object Function]";
-var NULL = exports.NULL = "[object Null]";
-var NUMBER = exports.NUMBER = "[object Number]";
-var OBJECT = exports.OBJECT = "[object Object]";
-var STRING = exports.STRING = "[object String]";
-var UNDEFINED = exports.UNDEFINED = "[object Undefined]";
-var ARGUMENTS = exports.ARGUMENTS = "[object Arguments]";
-var REGEXP = exports.REGEXP = "[object RegExp]";
+var ARRAY = exports.ARRAY = "Array";
+var ARGUMENTS = exports.ARGUMENTS = "Arguments";
+var BOOLEAN = exports.BOOLEAN = "Boolean";
+var DATE = exports.DATE = "Date";
+var FUNCTION = exports.FUNCTION = "Function";
+var NULL = exports.NULL = "Null";
+var NUMBER = exports.NUMBER = "Number";
+var OBJECT = exports.OBJECT = "Object";
+var REGEXP = exports.REGEXP = "RegExp";
+var STRING = exports.STRING = "String";
+var UNDEFINED = exports.UNDEFINED = "Undefined";
 var jsonMarshallable = [ARRAY, BOOLEAN, DATE, NULL, NUMBER, OBJECT, STRING, UNDEFINED];
+
 
 exports.verbose = false;
 exports.strict = false;
 
 
-function test(expectedType, val, attr, name) {
-    var actualType = {}.toString.call(val);
-    if(actualType === expectedType) {
+function _getType(obj) {
+    return {}.toString.call(obj).match(/^\[object (.*)\]$/)[1];
+}
+
+
+function test(val, template, name, templateType) {
+    templateType = templateType || _getType(template);
+    var actualType = _getType(val);
+    if (templateType === STRING && actualType === template) {
+        return true;
+    } else if(templateType === ARRAY && template.indexOf(actualType) >= 0) {
         return true;
     }
-    if(exports.verbose || exports.strict) {
-        actualType = actualType.match(/^\[object (.*)\]$/)[1];
-        expectedType = expectedType.match(/^\[object (.*)\]$/)[1];
-        var message = "expected " + expectedType + ", got " + actualType + " instead (castly):";
-        if(name) {
-            attr = name + "." + attr;
+    if (exports.verbose || exports.strict) {
+        var message = "expected " + template + ", got " + actualType + " instead:";
+        if (name) {
+            message = "for " + name + ": " + message;
         }
-        if(attr) {
-            message = "for " + attr + ": " + message;
-        }
+        message = "(castly) " + message;
         if (exports.verbose) {
             console.log(message, val);
         }
@@ -40,44 +45,47 @@ function test(expectedType, val, attr, name) {
     return false;
 }
 
-function convert(obj, constructor) {
-    var output = new constructor();
-    var name = constructor.name;
-    if (test(FUNCTION, output.getTypeDescription, "typeDescriptor", name)) {
+
+function convert(obj, template, name) {
+    name = name || (template.constructor && template.constructor.name);
+    var templateType = _getType(template);
+    if (jsonMarshallable.indexOf(template) >= 0 || templateType === ARRAY) {
+        return test(obj, template, name); //a type that doesn't need conversion
+    } else if (templateType === FUNCTION) {
+        return template(obj); //a custom conversion
+    } else if (templateType === OBJECT) {
         var attr;
-        var val;
-        var typeDescription = output.getTypeDescription();
-        for (attr in typeDescription) {
-            val = obj[attr];
-            var expectedType = typeDescription[attr];
-            if (jsonMarshallable.indexOf(expectedType) >= 0) {
-                test(expectedType, val, attr, name);
-            } else if ({}.toString.call(expectedType) === FUNCTION) {
-                val = expectedType(val);
-            } else {
-                test("[object UnhandledType]", val, attr, name);
+        if (test(template.getTypeDescription, FUNCTION, name + "." + "typeDescriptor")) {
+            var typeDescription = template.getTypeDescription();
+            for (attr in typeDescription) {
+                template[attr] = convert(obj[attr], typeDescription[attr], name + "." + attr);
+                delete obj[attr];
             }
-            output[attr] = val;
-            delete obj[attr];
+            for (attr in obj) {
+                test(obj[attr], UNDEFINED, name + "." + attr);
+                template[attr] = obj[attr];
+            }
+
+        } else {
+            for (attr in obj) {
+                template[attr] = obj[attr];
+            }
         }
-        for (attr in obj) {
-            val = obj[attr];
-            test(UNDEFINED, val, attr, name);
-            output[attr] = val;
-        }
-        return output;
+        return template;
     } else {
-        return obj
+        throw new Error("unhandled conversion template: " + template);
     }
 }
 
-function unmarshal(str, constructor) {
+
+function unmarshal(str, template, name) {
     if (str) {
-        return convert(JSON.parse(str), constructor);
+        return convert(JSON.parse(str), template, name);
     } else {
         return null;
     }
 }
+
 
 exports.test = test;
 exports.convert = convert;
