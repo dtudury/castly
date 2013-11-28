@@ -26,7 +26,7 @@ function test(val, template, name, templateType) {
     var actualType = _getType(val);
     if (templateType === STRING && actualType === template) {
         return true;
-    } else if(templateType === ARRAY && template.indexOf(actualType) >= 0) {
+    } else if (templateType === ARRAY && template.indexOf(actualType) >= 0) {
         return true;
     }
     if (exports.verbose || exports.strict) {
@@ -45,6 +45,17 @@ function test(val, template, name, templateType) {
     return false;
 }
 
+function makeArrayTester(templateType) {
+    return function (items, name) {
+        if (test(items, ARRAY, name)) {
+            for (var i = 0; i < items.length; i++) {
+                test(items[i], templateType, name + "[" + i + "]");
+            }
+        }
+        return items;
+    }
+}
+
 
 function convert(obj, template, name) {
     name = name || (template.constructor && template.constructor.name);
@@ -53,20 +64,25 @@ function convert(obj, template, name) {
         test(obj, template, name); //a type that doesn't need conversion
         return obj;
     } else if (templateType === FUNCTION) {
-        return template(obj); //a custom conversion
+        return template(obj, name); //a custom conversion
     } else if (templateType === OBJECT) {
         var attr;
         if (test(template.getTypeDescription, FUNCTION, name + "." + "typeDescriptor")) {
             var typeDescription = template.getTypeDescription();
-            for (attr in typeDescription) {
-                template[attr] = convert(obj[attr], typeDescription[attr], name + "." + attr);
-                delete obj[attr];
+            if (_getType(typeDescription) === FUNCTION) {
+                for (attr in obj) {
+                    template[attr] = typeDescription(obj[attr], name, attr);
+                }
+            } else {
+                for (attr in typeDescription) {
+                    template[attr] = convert(obj[attr], typeDescription[attr], name + "." + attr);
+                    delete obj[attr];
+                }
+                for (attr in obj) {
+                    test(obj[attr], UNDEFINED, name + "." + attr);
+                    template[attr] = obj[attr];
+                }
             }
-            for (attr in obj) {
-                test(obj[attr], UNDEFINED, name + "." + attr);
-                template[attr] = obj[attr];
-            }
-
         } else {
             for (attr in obj) {
                 template[attr] = obj[attr];
@@ -89,6 +105,7 @@ function unmarshal(str, template, name) {
 
 
 exports.test = test;
+exports.makeArrayTester = makeArrayTester;
 exports.convert = convert;
 exports.unmarshal = unmarshal;
 
