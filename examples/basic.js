@@ -1,17 +1,3 @@
-#castly
-
-Javascript unmarshalling.  Copies generic JSON attributes into "fresh" instances complete with methods and prototypes.
-Easily describe what you expect to come back from the server and it will optionally log or throw when it doesn't match.
-
-  [![Build Status](https://travis-ci.org/dtudury/castly.png)](https://travis-ci.org/dtudury/castly)
-
-## Installation
-
-    $ npm install is-a
-
-## Usage
-
-```js
 
 var myJSON = JSON.stringify({
     tuple:[1, 2, "three"],
@@ -58,7 +44,7 @@ function SpecialTuple() {
         return function(obj, name, attr) {
             if(attr === '0') return castly.convert(obj, typeIs.NUMBER, name + "[0]");
             if(attr === '1') return castly.convert(obj, typeIs.NUMBER, name + "[1]");
-            if(attr === '2') return castly.convert(obj, typeIs.STRING, name + "[2]");
+            if(attr === '2') return castly.convert(obj, typeIs.NUMBER, name + "[2]");
             else return castly.convert(obj, typeIs.UNDEFINED, name + "[" + attr + "]");
         }
     };
@@ -79,5 +65,3 @@ console.log(myObj.tuple.toString());  //"I'm a special tuple 1---2---three"
 myObj.config1.do_stuff(); //"undefined"
 myObj.config2.do_stuff(); //"true"
 
-
-```

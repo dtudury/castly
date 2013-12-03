@@ -1,10 +1,10 @@
 {
   "name": "castly",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "unmarshalling and type-casting in javascript",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "./node_modules/mocha/bin/mocha"
   },
   "repository": {
     "type": "git",
@@ -25,5 +25,12 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/dtudury/castly/issues"
+  },
+  "devDependencies": {
+    "sinon": "~1.7.3",
+    "mocha": "~1.14.0"
+  },
+  "dependencies": {
+    "is-a": "~0.2.5"
   }
 }

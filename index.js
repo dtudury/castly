@@ -1,103 +1,79 @@
-var ARRAY = exports.ARRAY = "Array";
-var ARGUMENTS = exports.ARGUMENTS = "Arguments";
-var BOOLEAN = exports.BOOLEAN = "Boolean";
-var DATE = exports.DATE = "Date";
-var FUNCTION = exports.FUNCTION = "Function";
-var NULL = exports.NULL = "Null";
-var NUMBER = exports.NUMBER = "Number";
-var OBJECT = exports.OBJECT = "Object";
-var REGEXP = exports.REGEXP = "RegExp";
-var STRING = exports.STRING = "String";
-var UNDEFINED = exports.UNDEFINED = "Undefined";
-var jsonMarshallable = [ARRAY, BOOLEAN, DATE, NULL, NUMBER, OBJECT, STRING, UNDEFINED];
-
+var is = exports.typeIs = require('is-a');
 
 exports.verbose = false;
 exports.strict = false;
 
 
-function _getType(obj) {
-    return {}.toString.call(obj).match(/^\[object (.*)\]$/)[1];
-}
-
-
-function test(val, template, name, templateType) {
-    templateType = templateType || _getType(template);
-    var actualType = _getType(val);
-    if (templateType === STRING && actualType === template) {
-        return true;
-    } else if (templateType === ARRAY && template.indexOf(actualType) >= 0) {
+function test(obj, expectedType, name) {
+    if (is(obj).an(expectedType)) {
         return true;
     }
     if (exports.verbose || exports.strict) {
-        var message = "expected " + template + ", got " + actualType + " instead:";
-        if (name) {
-            message = "for " + name + ": " + message;
-        }
-        message = "(castly) " + message;
-        if (exports.verbose) {
-            console.log(message, val);
-        }
-        if (exports.strict) {
-            throw new Error(message);
-        }
+        var message = "(castly) ";
+        if (name) message += "for " + name + ": ";
+        message += "expected " + expectedType + ", got " + is(obj).toString() + " instead:";
+        if (exports.verbose) console.log(message, obj);
+        if (exports.strict) throw new Error(message);
     }
+
     return false;
 }
 
-function makeArrayTester(templateType) {
-    return function (items, name) {
-        if (test(items, ARRAY, name)) {
-            for (var i = 0; i < items.length; i++) {
-                test(items[i], templateType, name + "[" + i + "]");
+function makeArrayTester(expectedType) {
+    return function() {
+        this.describeType = function() {
+            return function(obj, name, attr) {
+                return convert(obj, expectedType, name + '["' + attr + '"]');
             }
         }
-        return items;
     }
 }
 
 
-function convert(obj, template, name) {
-    name = name || (template.constructor && template.constructor.name);
-    var templateType = _getType(template);
-    if (jsonMarshallable.indexOf(template) >= 0 || templateType === ARRAY) {
-        test(obj, template, name); //a type that doesn't need conversion
+function convert(obj, expectedType, name) {
+    if (is(expectedType).an.Array) {
+        //list of possible types, if a constructor is in the list and can be used, use it
+        for (var i = 0; i < expectedType.length; i++) {
+            if (is(expectedType[i]).a.Function && (is(obj).an.Array || is(obj).an.Object)) return convert(obj, expectedType[i], name);
+        }
+    }
+    if (is(expectedType).a.JsonBasicType) {
+        //basic json type, just make sure it matches
+        test(obj, expectedType, name);
         return obj;
-    } else if (templateType === FUNCTION) {
-        return template(obj, name); //a custom conversion
-    } else if (templateType === OBJECT) {
-        var attr;
-        if (test(template.getTypeDescription, FUNCTION, name + "." + "typeDescriptor")) {
-            var typeDescription = template.getTypeDescription();
-            if (_getType(typeDescription) === FUNCTION) {
-                for (attr in obj) {
-                    template[attr] = typeDescription(obj[attr], name, attr);
-                }
+    } else if (!expectedType.is && is(expectedType).a.Function) {
+        //passed a constructor, make an instance and get it's type description
+        var instance = new expectedType();
+        name = name || expectedType.name
+        if (test(instance.describeType, is.FUNCTION, name + "." + "describeType")) {
+            var description = instance.describeType();
+            if (is(description).a.Function) {
+                //descriptions for non-standard type should be mapping functions
+                for (var attr in obj) instance[attr] = description(obj[attr], name, attr);
             } else {
-                for (attr in typeDescription) {
-                    template[attr] = convert(obj[attr], typeDescription[attr], name + "." + attr);
+                //standard type descriptions are objects with a type for each expected attribute
+                for (var attr in description) {
+                    instance[attr] = convert(obj[attr], description[attr], name + "." + attr);
                     delete obj[attr];
                 }
-                for (attr in obj) {
-                    test(obj[attr], UNDEFINED, name + "." + attr);
-                    template[attr] = obj[attr];
-                }
+                //unexpected attributes... set, complain and throw
+                for (var attr in obj) test(instance[attr] = obj[attr], UNDEFINED, name + "." + attr);
             }
         } else {
-            for (attr in obj) {
-                template[attr] = obj[attr];
-            }
+            //we really *SHOULD* have a type descriptor for this to be useful, but we already threw if you cared
+            for (attr in obj) instance[attr] = obj[attr];
         }
-        return template;
-    } else {
-        throw new Error("unhandled conversion template: " + template);
+        return instance;
     }
+    console.log(is(expectedType).toString);
+    throw new Error("something bad...");
+
 }
 
 
-function unmarshal(str, template, name) {
+function unmarshal(str, type, name) {
     if (str) {
-        return convert(JSON.parse(str), template, name);
+        return convert(JSON.parse(str), type, name);
     } else {
         return null;
     }
@@ -105,7 +81,8 @@ function unmarshal(str, template, name) {
 
 
 exports.test = test;
-exports.makeArrayTester = makeArrayTester;
+exports.arrayOf = makeArrayTester;
+exports.hashOf = makeArrayTester;
 exports.convert = convert;
 exports.unmarshal = unmarshal;
 
