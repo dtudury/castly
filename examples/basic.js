@@ -44,7 +44,7 @@ function SpecialTuple() {
         return function(obj, name, attr) {
             if(attr === '0') return castly.convert(obj, typeIs.NUMBER, name + "[0]");
             if(attr === '1') return castly.convert(obj, typeIs.NUMBER, name + "[1]");
-            if(attr === '2') return castly.convert(obj, typeIs.NUMBER, name + "[2]");
+            if(attr === '2') return castly.convert(obj, typeIs.STRING, name + "[2]");
             else return castly.convert(obj, typeIs.UNDEFINED, name + "[" + attr + "]");
         }
     };
