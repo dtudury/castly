@@ -22,8 +22,9 @@ function test(obj, expectedType, name) {
 function makeArrayTester(expectedType) {
     return function() {
         this.describeType = function() {
-            return function(obj, name, attr) {
-                return convert(obj, expectedType, name + '["' + attr + '"]');
+            return function(instance, obj, name) {
+                for (var attr in obj) instance[attr] = convert(obj[attr], expectedType, name + '["' + attr + '"]');
+                return instance;
             }
         }
     }
@@ -34,7 +35,7 @@ function convert(obj, expectedType, name) {
     if (is(expectedType).an.Array) {
         //list of possible types, if a constructor is in the list and can be used, use it
         for (var i = 0; i < expectedType.length; i++) {
-            if (is(expectedType[i]).a.Function && (is(obj).an.Array || is(obj).an.Object)) return convert(obj, expectedType[i], name);
+            if (is(expectedType[i]).a.Function) return convert(obj, expectedType[i], name);
         }
     }
     if (is(expectedType).a.JsonBasicType) {
@@ -49,7 +50,7 @@ function convert(obj, expectedType, name) {
             var description = instance.describeType();
             if (is(description).a.Function) {
                 //descriptions for non-standard type should be mapping functions
-                for (var attr in obj) instance[attr] = description(obj[attr], name, attr);
+                return description(instance, obj, name);
             } else {
                 //standard type descriptions are objects with a type for each expected attribute
                 for (var attr in description) {
@@ -65,8 +66,7 @@ function convert(obj, expectedType, name) {
         }
         return instance;
     }
-    console.log(is(expectedType).toString);
-    throw new Error("something bad...");
+    throw new Error("something bad... " + is(expectedType).toString);
 
 }
 

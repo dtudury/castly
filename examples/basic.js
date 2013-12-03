@@ -40,17 +40,19 @@ function Config() {
 
 function SpecialTuple() {
     this.describeType = function () {
-        this.length = 3;
-        return function(obj, name, attr) {
-            if(attr === '0') return castly.convert(obj, typeIs.NUMBER, name + "[0]");
-            if(attr === '1') return castly.convert(obj, typeIs.NUMBER, name + "[1]");
-            if(attr === '2') return castly.convert(obj, typeIs.STRING, name + "[2]");
-            else return castly.convert(obj, typeIs.UNDEFINED, name + "[" + attr + "]");
-        }
+        return function (instance, obj, name) {
+            var output = [];
+            if (castly.test(obj, castly.typeIs.ARRAY, name)) {
+                output[0] = castly.convert(obj[0], typeIs.NUMBER, name + "[0]");
+                output[1] = castly.convert(obj[1], typeIs.NUMBER, name + "[1]");
+                output[2] = castly.convert(obj[2], typeIs.STRING, name + "[2]");
+            }
+            output.toString = function () {
+                return "I'm a special tuple " + this.join("---");
+            };
+            return output;
+        };
     };
-    this.toString = function() {
-        return "I'm a special tuple " + this.join("---");
-    }
 }
 SpecialTuple.prototype = [];
 
