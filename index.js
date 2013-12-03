@@ -35,7 +35,7 @@ function convert(obj, expectedType, name) {
     if (is(expectedType).an.Array) {
         //list of possible types, if a constructor is in the list and can be used, use it
         for (var i = 0; i < expectedType.length; i++) {
-            if (is(expectedType[i]).a.Function) return convert(obj, expectedType[i], name);
+            if (is(expectedType[i]).a.Function && (is(obj).an.Array || is(obj).an.Object)) return convert(obj, expectedType[i], name);
         }
     }
     if (is(expectedType).a.JsonBasicType) {
