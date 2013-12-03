@@ -57,7 +57,7 @@ function convert(obj, expectedType, name) {
                     delete obj[attr];
                 }
                 //unexpected attributes... set, complain and throw
-                for (var attr in obj) test(instance[attr] = obj[attr], UNDEFINED, name + "." + attr);
+                for (var attr in obj) test(instance[attr] = obj[attr], is.UNDEFINED, name + "." + attr);
             }
         } else {
             //we really *SHOULD* have a type descriptor for this to be useful, but we already threw if you cared
